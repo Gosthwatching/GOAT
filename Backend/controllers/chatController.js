@@ -1,5 +1,4 @@
 import {
-  // TODO: importer fonctions model chat
   selectMessagesByChatbox,
   insertMessage,
 } from "../models/chatModel.js";
@@ -8,8 +7,9 @@ export async function listMessages(req, res, next) {
   try {
     const chatboxId = Number(req.params.chatboxId);
 
-    // TODO: valider chatboxId
-    // if (...) return res.status(400).json({ error: "..." });
+    if (!Number.isInteger(chatboxId) || chatboxId <= 0) {
+      return res.status(400).json({ error: "ID de chatbox invalide" });
+    }
 
     const rows = await selectMessagesByChatbox(chatboxId);
     return res.json(rows);
@@ -21,15 +21,23 @@ export async function listMessages(req, res, next) {
 export async function sendMessage(req, res, next) {
   try {
     const chatboxId = Number(req.params.chatboxId);
-    const { sender_id, text } = req.body;
+    const senderId = Number(req.user?.id);
+    const textClean = String(req.body?.text ?? "").trim();
 
-    // TODO: validations chatboxId + sender_id + text
-    // if (...) return res.status(400).json({ error: "..." });
+    if (
+      !Number.isInteger(chatboxId) ||
+      chatboxId <= 0 ||
+      !Number.isInteger(senderId) ||
+      senderId <= 0 ||
+      !textClean
+    ) {
+      return res.status(400).json({ error: "Champs invalides" });
+    }
 
     const msg = await insertMessage({
       chatboxId,
-      sender_id: Number(sender_id),
-      text: String(text),
+      sender_id: senderId,
+      text: textClean,
     });
 
     return res.status(201).json(msg);
