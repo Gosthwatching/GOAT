@@ -1,43 +1,47 @@
 import {
-  // TODO: importer les fonctions model
   createAccount,
   findAccountByPseudo,
   findAccountById,
 } from "../models/accountModel.js";
 
 import {
-  // TODO: importer les fonctions auth
   hashPassword,
   comparePassword,
   signToken,
   verifyToken,
 } from "../services/auth.js";
 
-export async function register(req, res, next) {
+export async function   register(req, res, next) {
   try {
     const { nom, prenom, pseudo, password } = req.body;
 
-    // TODO: valider les champs obligatoires
-    // if (...) return res.status(400).json({ error: "..." });
+    const nomClean = String(nom ?? "").trim();
+    const prenomClean = String(prenom ?? "").trim();
+    const pseudoClean = String(pseudo ?? "").trim();
+    const passwordRaw = String(password ?? "");
 
-    // TODO: vérifier si pseudo déjà pris
-    const existing = await findAccountByPseudo(pseudo);
+    if (!nomClean || !prenomClean || !pseudoClean || !passwordRaw) {
+      return res.status(400).json({ error: "Tous les champs sont obligatoires" });
+    }
+
+    if (passwordRaw.length < 8) {
+      return res.status(400).json({ error: "Le mot de passe doit contenir au moins 8 caractères" });
+    }
+
+    const existing = await findAccountByPseudo(pseudoClean);
     if (existing) {
       return res.status(409).json({ error: "Pseudo déjà utilisé" });
     }
 
-    // TODO: hasher le mot de passe
-    const passwordHash = await hashPassword(password);
+    const passwordHash = await hashPassword(passwordRaw);
 
-    // TODO: créer le compte en DB
     const account = await createAccount({
-      nom,
-      prenom,
-      pseudo,
+      nom: nomClean,
+      prenom: prenomClean,
+      pseudo: pseudoClean,
       passwordHash,
     });
 
-    // TODO: choisir les champs à renvoyer
     return res.status(201).json(account);
   } catch (err) {
     next(err);
@@ -46,24 +50,23 @@ export async function register(req, res, next) {
 
 export async function login(req, res, next) {
   try {
-    const { pseudo, password } = req.body;
+    const pseudoClean = String(req.body?.pseudo ?? "").trim();
+    const passwordRaw = String(req.body?.password ?? "");
 
-    // TODO: valider les champs
-    // if (...) return res.status(400).json({ error: "..." });
+    if (!pseudoClean || !passwordRaw) {
+      return res.status(400).json({ error: "Tous les champs sont obligatoires" });
+    }
 
-    // TODO: chercher le compte
-    const account = await findAccountByPseudo(pseudo);
+    const account = await findAccountByPseudo(pseudoClean);
     if (!account) {
       return res.status(401).json({ error: "Identifiants invalides" });
     }
 
-    // TODO: vérifier le mot de passe
-    const ok = await comparePassword(password, account.password_hash);
+    const ok = await comparePassword(passwordRaw, account.password_hash);
     if (!ok) {
       return res.status(401).json({ error: "Identifiants invalides" });
     }
 
-    // TODO: générer un JWT
     const token = signToken({
       sub: account.id,
       pseudo: account.pseudo,
@@ -78,26 +81,31 @@ export async function login(req, res, next) {
 export async function me(req, res, next) {
   try {
     const authHeader = req.headers.authorization || "";
-    const token = authHeader.startsWith("Bearer ")
-      ? authHeader.slice(7)
-      : null;
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
-    // TODO: vérifier présence token
     if (!token) {
       return res.status(401).json({ error: "Token manquant" });
     }
 
-    // TODO: décoder/vérifier token
-    const payload = verifyToken(token);
+    let payload;
+    try {
+      payload = verifyToken(token);
+    } catch {
+      return res.status(401).json({ error: "Token invalide" });
+    }
 
-    // TODO: récupérer l'utilisateur en DB
-    const account = await findAccountById(Number(payload.sub));
+    const accountId = Number(payload?.sub);
+    if (!Number.isInteger(accountId)) {
+      return res.status(401).json({ error: "Token invalide" });
+    }
+
+    const account = await findAccountById(accountId);
     if (!account) {
       return res.status(404).json({ error: "Compte introuvable" });
     }
 
     return res.json(account);
   } catch (err) {
-    return res.status(401).json({ error: "Token invalide" });
+    next(err);
   }
 }

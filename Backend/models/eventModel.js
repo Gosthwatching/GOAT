@@ -11,15 +11,17 @@ export async function insertEvent({ nom, lieu, date, expiration, created_by }) {
   return rows[0];
 }
 
+
 export async function selectEvents() {
   const sql = `
-    -- TODO: tu peux commencer simple avec SELECT * FROM sortie
-    -- puis ajouter le nombre de participants
     SELECT s.*,
-           COALESCE(COUNT(p.compte_id), 0)::int AS nb_participants
+           COALESCE(pc.nb_participants, 0)::int AS nb_participants
     FROM sortie s
-    LEFT JOIN participants p ON p.sortie_id = s.id
-    GROUP BY s.id
+    LEFT JOIN (
+      SELECT sortie_id, COUNT(*)::int AS nb_participants
+      FROM participants
+      GROUP BY sortie_id
+    ) pc ON pc.sortie_id = s.id
     ORDER BY s.date ASC
   `;
   const { rows } = await pool.query(sql);
@@ -28,7 +30,6 @@ export async function selectEvents() {
 
 export async function insertParticipant(sortieId, compteId) {
   const sql = `
-    -- TODO: anti-doublon avec ON CONFLICT
     INSERT INTO participants (sortie_id, compte_id)
     VALUES ($1, $2)
     ON CONFLICT (sortie_id, compte_id) DO NOTHING

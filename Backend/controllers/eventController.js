@@ -9,23 +9,38 @@ import {
 export async function createEvent(req, res, next) {
   try {
     const { nom, lieu, date, expiration, created_by } = req.body;
+    
+    if (!nom || !lieu || !date || !created_by) {
+      return res.status(400).json({ error: "Champs obligatoires manquants" });
+    }
+  
+    const parsedDate = new Date(date);
+    if (Number.isNaN(parsedDate.getTime())) {
+      return res.status(400).json({ error: "Date invalide" });
+    }
 
-    // TODO: validations champs obligatoires
-    // if (...) return res.status(400).json({ error: "..." });
+    // 🔥 VALIDATION EXPIRATION
+    let parsedExpiration = null;
+    if (expiration) {
+      parsedExpiration = new Date(expiration);
 
-    // TODO: validation date
-    // const parsedDate = new Date(date);
-    // if (Number.isNaN(parsedDate.getTime())) ...
+      if (Number.isNaN(parsedExpiration.getTime())) {
+        return res.status(400).json({ error: "Expiration invalide" });
+      }
 
-    // TODO: validation expiration (optionnelle)
-    // if (expiration) { ... }
+      if (parsedExpiration <= parsedDate) {
+        return res.status(400).json({
+          error: "Expiration doit être strictement supérieure à la date de l'événement"
+        });
+      }
+    }
 
     const event = await insertEvent({
-      nom,
-      lieu,
-      date,        // TODO: éventuellement convertir en ISO string
-      expiration,  // TODO: idem
-      created_by,
+      nom: String(nom).trim(),
+      lieu: String(lieu).trim(),
+      date: parsedDate.toISOString(),
+      expiration: parsedExpiration ? parsedExpiration.toISOString() : null,
+      created_by: Number(created_by),
     });
 
     return res.status(201).json(event);
@@ -48,12 +63,13 @@ export async function joinEvent(req, res, next) {
     const eventId = Number(req.params.id);
     const { compte_id } = req.body;
 
-    // TODO: validations eventId + compte_id
-    // if (...) return res.status(400).json({ error: "..." });
+    if (isNaN(eventId) || isNaN(Number(compte_id))) {
+      return res.status(400).json({ error: "Champs invalides" });
+    }
 
     const row = await insertParticipant(eventId, Number(compte_id));
 
-    return res.status(201).json({
+    return res.status(200).json({
       joined: Boolean(row),
       message: row ? "Inscription OK" : "Déjà inscrit",
     });
@@ -67,8 +83,9 @@ export async function leaveEvent(req, res, next) {
     const eventId = Number(req.params.id);
     const { compte_id } = req.body;
 
-    // TODO: validations eventId + compte_id
-    // if (...) return res.status(400).json({ error: "..." });
+    if (isNaN(eventId) || isNaN(Number(compte_id))) {
+      return res.status(400).json({ error: "Champs invalides" });
+    }
 
     const row = await deleteParticipant(eventId, Number(compte_id));
 

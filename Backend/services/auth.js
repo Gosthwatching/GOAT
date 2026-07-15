@@ -20,7 +20,6 @@ export async function comparePassword(plain, hash) {
 }
 
 export function signToken(payload) {
-  // TODO: mettre JWT_SECRET dans .env
   const secret = process.env.JWT_SECRET || "dev_secret_change_me";
   return jwt.sign(payload, secret, { expiresIn: "7d" });
 }
