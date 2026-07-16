@@ -21,5 +21,4 @@ router.post("/:id/join", joinEvent);
 // TODO: quitter une sortie
 router.delete("/:id/leave", leaveEvent);
 
-// TODO: export du router
 export default router;
