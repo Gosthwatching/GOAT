@@ -1,8 +1,5 @@
 import { Router } from "express";
-import {
-  listMessages,
-  sendMessage,
-} from "../controllers/chatController.js";
+import { listMessages, sendMessage } from "../controllers/chatController.js";
 import { requireAuth } from "../Middleware/middleware.js";
 
 const router = Router();

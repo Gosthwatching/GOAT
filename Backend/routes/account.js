@@ -1,6 +1,5 @@
 import { Router } from "express";
 import {
-  // TODO: décommente quand tu crées le controller
   register,
   login,
   me,
