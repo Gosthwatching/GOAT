@@ -1,30 +1,26 @@
-import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
 
-const SALT_ROUNDS = 12;
-
-export async function hashPassword(plain) {
-  if (typeof plain !== "string") {
-    throw new Error("Le mot de passe est invalide");
-  }
-  
-  if (plain.length < 8) {
-    throw new Error("Le mot de passe doit contenir au moins 8 caractères");
-  }
-  
-  return bcrypt.hash(String(plain), SALT_ROUNDS);
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET || JWT_SECRET.length < 32) {
+  throw new Error("JWT_SECRET manquant ou trop faible");
 }
 
-export async function comparePassword(plain, hash) {
-  return bcrypt.compare(String(plain), String(hash));
+export async function hashPassword(raw) {
+  return bcrypt.hash(raw, 12);
+}
+
+export async function comparePassword(raw, hash) {
+  return bcrypt.compare(raw, hash);
 }
 
 export function signToken(payload) {
-  const secret = process.env.JWT_SECRET || "dev_secret_change_me";
-  return jwt.sign(payload, secret, { expiresIn: "7d" });
+  return jwt.sign(payload, JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRES_IN || "15m",
+    algorithm: "HS256",
+  });
 }
 
 export function verifyToken(token) {
-  const secret = process.env.JWT_SECRET || "dev_secret_change_me";
-  return jwt.verify(token, secret);
+  return jwt.verify(token, JWT_SECRET, { algorithms: ["HS256"] });
 }

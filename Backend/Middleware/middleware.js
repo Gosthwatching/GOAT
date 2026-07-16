@@ -7,9 +7,8 @@ export function requireAuth(req, res, next) {
     return res.status(401).json({ error: "Token manquant" });
   }
 
-  const token = authHeader.slice(7);
-
   try {
+    const token = authHeader.slice(7);
     const payload = verifyToken(token);
     const userId = Number(payload?.sub);
 
@@ -17,11 +16,7 @@ export function requireAuth(req, res, next) {
       return res.status(401).json({ error: "Token invalide" });
     }
 
-    req.user = {
-      id: userId,
-      pseudo: payload?.pseudo ?? null,
-    };
-
+    req.user = { id: userId, pseudo: payload?.pseudo ?? null };
     return next();
   } catch {
     return res.status(401).json({ error: "Token invalide" });

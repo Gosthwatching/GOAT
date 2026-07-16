@@ -1,0 +1,143 @@
+{
+  "info": {
+    "name": "GOAT Backend",
+    "_postman_id": "d6f0d09a-2a1a-4eb1-9f5f-2b5641d5c001",
+    "description": "Tests backend GOAT (auth, event, chat)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "token", "value": "" },
+    { "key": "eventId", "value": "" },
+    { "key": "chatboxId", "value": "1" },
+    { "key": "pseudo", "value": "jdoe_test" },
+    { "key": "password", "value": "motdepasse123" }
+  ],
+  "item": [
+    {
+      "name": "1) Health",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/health" }
+    },
+    {
+      "name": "2) Register",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/api/account/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nom\": \"TEST\",\n  \"prenom\": \"John\",\n  \"pseudo\": \"{{pseudo}}\",\n  \"password\": \"{{password}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "3) Login (save token)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/api/account/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"pseudo\": \"{{pseudo}}\",\n  \"password\": \"{{password}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "  const json = pm.response.json();",
+              "  if (json.token) pm.collectionVariables.set('token', json.token);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4) Me (auth)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{baseUrl}}/api/account/me"
+      }
+    },
+    {
+      "name": "5) Create Event (save eventId)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/api/event/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nom\": \"Sortie parc\",\n  \"lieu\": \"Paris\",\n  \"date\": \"2026-07-20T14:00:00.000Z\",\n  \"expiration\": \"2026-07-21T10:00:00.000Z\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 201) {",
+              "  const json = pm.response.json();",
+              "  if (json.id) pm.collectionVariables.set('eventId', String(json.id));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6) List Events",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{baseUrl}}/api/event/"
+      }
+    },
+    {
+      "name": "7) Join Event",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{baseUrl}}/api/event/{{eventId}}/join"
+      }
+    },
+    {
+      "name": "8) Leave Event",
+      "request": {
+        "method": "DELETE",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{baseUrl}}/api/event/{{eventId}}/leave"
+      }
+    },
+    {
+      "name": "9) List Chat Messages",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/chat/{{chatboxId}}/messages"
+      }
+    },
+    {
+      "name": "10) Send Chat Message",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/api/chat/{{chatboxId}}/messages",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"text\": \"Salut\"\n}"
+        }
+      }
+    }
+  ]
+}

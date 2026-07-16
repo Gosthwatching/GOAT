@@ -1,6 +1,7 @@
 import {
   selectMessagesByChatbox,
   insertMessage,
+  canUserWriteToChatbox,
 } from "../models/chatModel.js";
 
 export async function listMessages(req, res, next) {
@@ -32,6 +33,11 @@ export async function sendMessage(req, res, next) {
       !textClean
     ) {
       return res.status(400).json({ error: "Champs invalides" });
+    }
+
+    const allowed = await canUserWriteToChatbox(chatboxId, senderId);
+    if (!allowed) {
+      return res.status(403).json({ error: "Accès refusé à cette chatbox" });
     }
 
     const msg = await insertMessage({

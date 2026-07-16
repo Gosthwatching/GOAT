@@ -1,20 +1,14 @@
 import { Router } from "express";
-import {
-  register,
-  login,
-  me,
-} from "../controllers/accountController.js";
+import { register, login, me } from "../controllers/accountController.js";
+import { requireAuth } from "../Middleware/middleware.js";
+import { authLimiter } from "../Middleware/security.js";
+import { validateBody } from "../Middleware/validate.js";
+import { registerSchema, loginSchema } from "../validators/schemas.js";
 
 const router = Router();
 
-// TODO: endpoint inscription
-router.post("/register", register);
+router.post("/register", authLimiter, validateBody(registerSchema), register);
+router.post("/login", authLimiter, validateBody(loginSchema), login);
+router.get("/me", requireAuth, me);
 
-// TODO: endpoint connexion
-router.post("/login", login);
-
-// TODO: endpoint profil connecté
-router.get("/me", me);
-
-// TODO: export du router
 export default router;

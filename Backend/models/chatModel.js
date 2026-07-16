@@ -11,6 +11,19 @@ export async function selectMessagesByChatbox(chatboxId) {
   return rows;
 }
 
+export async function canUserWriteToChatbox(chatboxId, userId) {
+  const sql = `
+    SELECT 1
+    FROM chatbox c
+    JOIN participants p ON p.sortie_id = c.sortie_id
+    WHERE c.id = $1
+      AND p.compte_id = $2
+    LIMIT 1
+  `;
+  const { rows } = await pool.query(sql, [chatboxId, userId]);
+  return rows.length > 0;
+}
+
 export async function insertMessage({ chatboxId, sender_id, text }) {
   const sql = `
     INSERT INTO message (chatbox_id, sender_id, text)
