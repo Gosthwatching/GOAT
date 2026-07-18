@@ -1,6 +1,7 @@
 import {
   createAccount,
   findAccountByPseudo,
+  findAccountsByName,
   findAccountById,
 } from "../models/accountModel.js";
 
@@ -13,14 +14,14 @@ import {
 
 export async function register(req, res, next) {
   try {
-    const { nom, prenom, pseudo, password } = req.body;
+    const { nom, prenom, password, photoProfil } = req.body;
 
     const nomClean = String(nom ?? "").trim();
     const prenomClean = String(prenom ?? "").trim();
-    const pseudoClean = String(pseudo ?? "").trim();
     const passwordRaw = String(password ?? "");
+    const photoProfilClean = String(photoProfil ?? "").trim();
 
-    if (!nomClean || !prenomClean || !pseudoClean || !passwordRaw) {
+    if (!nomClean || !prenomClean || !passwordRaw) {
       return res.status(400).json({ error: "Tous les champs sont obligatoires" });
     }
 
@@ -28,9 +29,29 @@ export async function register(req, res, next) {
       return res.status(400).json({ error: "Le mot de passe doit contenir au moins 8 caractères" });
     }
 
-    const existing = await findAccountByPseudo(pseudoClean);
-    if (existing) {
-      return res.status(409).json({ error: "Pseudo déjà utilisé" });
+    const normalize = (value) =>
+      String(value ?? "")
+        .normalize("NFD")
+        .replace(/\p{Diacritic}/gu, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "")
+        .slice(0, 12);
+
+    const pseudoRoot = `${normalize(prenomClean)}${normalize(nomClean)}` || "compte";
+
+    let pseudoGenerated = "";
+    for (let i = 0; i < 8; i += 1) {
+      const suffix = Math.random().toString(36).slice(2, 6);
+      const candidate = `${pseudoRoot}${suffix}`;
+      const existing = await findAccountByPseudo(candidate);
+      if (!existing) {
+        pseudoGenerated = candidate;
+        break;
+      }
+    }
+
+    if (!pseudoGenerated) {
+      return res.status(500).json({ error: "Impossible de générer un identifiant" });
     }
 
     const passwordHash = await hashPassword(passwordRaw);
@@ -38,8 +59,9 @@ export async function register(req, res, next) {
     const account = await createAccount({
       nom: nomClean,
       prenom: prenomClean,
-      pseudo: pseudoClean,
+      pseudo: pseudoGenerated,
       passwordHash,
+      photoProfil: photoProfilClean || null,
     });
 
     return res.status(201).json(account);
@@ -50,17 +72,24 @@ export async function register(req, res, next) {
 
 export async function login(req, res, next) {
   try {
-    const pseudoClean = String(req.body?.pseudo ?? "").trim();
+    const nomClean = String(req.body?.nom ?? "").trim();
+    const prenomClean = String(req.body?.prenom ?? "").trim();
     const passwordRaw = String(req.body?.password ?? "");
 
-    if (!pseudoClean || !passwordRaw) {
+    if (!nomClean || !prenomClean || !passwordRaw) {
       return res.status(400).json({ error: "Tous les champs sont obligatoires" });
     }
 
-    const account = await findAccountByPseudo(pseudoClean);
-    if (!account) {
+    const matches = await findAccountsByName(nomClean, prenomClean);
+    if (!matches.length) {
       return res.status(401).json({ error: "Identifiants invalides" });
     }
+
+    if (matches.length > 1) {
+      return res.status(409).json({ error: "Plusieurs comptes trouvés pour ce nom et prénom" });
+    }
+
+    const account = matches[0];
 
     const ok = await comparePassword(passwordRaw, account.password_hash);
     if (!ok) {

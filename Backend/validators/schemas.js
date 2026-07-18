@@ -3,12 +3,13 @@ import { z } from "zod";
 export const registerSchema = z.object({
   nom: z.string().trim().min(1),
   prenom: z.string().trim().min(1),
-  pseudo: z.string().trim().min(3).max(30),
   password: z.string().min(8),
+  photoProfil: z.string().trim().max(2048).optional().nullable(),
 });
 
 export const loginSchema = z.object({
-  pseudo: z.string().trim().min(1),
+  nom: z.string().trim().min(1),
+  prenom: z.string().trim().min(1),
   password: z.string().min(1),
 });
 
