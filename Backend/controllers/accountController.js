@@ -11,7 +11,7 @@ import {
   verifyToken,
 } from "../services/auth.js";
 
-export async function   register(req, res, next) {
+export async function register(req, res, next) {
   try {
     const { nom, prenom, pseudo, password } = req.body;
 
